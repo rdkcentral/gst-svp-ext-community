@@ -67,6 +67,23 @@ typedef enum media_type_e
 //     };
 // } gst_svp_token;
 
+typedef struct SecureBufferInfo_struct
+{
+    uint32_t secureBufSize;
+    void *pSecBufHandle;
+    void *pPhysAddr;
+    void *pVirtualAddr;
+    uint32_t align;
+    int ion_fd;
+    int map_fd;
+    bool  bCreateSecureMemRegion;
+    bool  bReleaseSecureMemRegion;
+    void *pSecureMemRegion;
+    void *pAVSecBuffer;
+    void *pEncryptedDataBuffer;
+    uint32_t SecureMemRegionSize;
+    uint32_t patternClearBlocks;
+} SecureBufferInfo;
 
 /*
  *  GstBuffer          *buffer          - gstreamer buffer that svp meta data will be appended to
@@ -86,6 +103,24 @@ gboolean svp_buffer_alloc_token(void **token);
 gboolean svp_buffer_free_token(void *token);
 gboolean svp_pipeline_buffers_available(void * pContext, media_type mediaType);
 gboolean gst_buffer_append_init_metadata(GstBuffer * buffer);
+
+/*
+ * gst-svp-ext SoC specific Implementation should be provide for below APIs
+ */
+void svpGetDrmOEMContext(void ** ppdrmOemContext);
+void svpGetDrmPlatformInitData( void ** ppPlatformInitData);
+bool svpIsAudioNeedNonSVPContext(void);
+bool svpIsVideoResCheckNeed(void);
+bool svpIsDynamicSVPEncEnabled( void );
+bool svpIsMultipleOpaqueSupportCTR( void );
+bool svpSetHandleToTEE( void* pHandle );
+bool svpLoadRevocationList(void);
+void svpGetDrmStoragePath(std::string& readDir, std::string& storagePath, std::string& storeLocation);
+void svpPlatformInitializePlayready(void);
+void svpPlatformInitializeWidevine(void);
+void svpPlatformUninitializePlayready(void);
+void svpPlatformUninitializeWidevine(void);
+bool svpIsSecureClockInitNeed(void);
 
 uint32_t svp_allocate_secure_buffers(void* pContext, void** ppInBuf, void** ppOutBuf, const uint8_t* pInData, const size_t nDataLen);
 uint32_t svp_release_secure_buffers(void* pContext,  void* pInBuf, void* pOutBuf, uint8_t* pDataOut, size_t nDataOutMax);
