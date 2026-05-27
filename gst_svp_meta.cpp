@@ -164,6 +164,97 @@ gboolean svp_buffer_free_token(void *token)
     return  svp_buffer_free_token_impl(token);
 }
 
+void svpGetDrmOEMContext(void ** ppdrmOemContext)
+{
+    RDKPerf perf(__FUNCTION__);
+    svpGetDrmOEMContextImpl(ppdrmOemContext);
+    return;
+}
+
+void svpGetDrmPlatformInitData( void ** ppPlatformInitData)
+{
+    RDKPerf perf(__FUNCTION__);
+    svpGetDrmPlatformInitDataImpl(ppPlatformInitData);
+    return;
+}
+
+bool svpIsAudioNeedNonSVPContext( void )
+{
+    RDKPerf perf(__FUNCTION__);
+    return svpIsAudioNeedNonSVPContextImpl();
+}
+
+bool svpIsVideoResCheckNeed( void )
+{
+    RDKPerf perf(__FUNCTION__);
+    return svpIsVideoResCheckNeedImpl();
+}
+
+bool svpIsDynamicSVPEncEnabled( void )
+{
+    RDKPerf perf(__FUNCTION__);
+    return svpIsDynamicSVPEncEnabledImpl();
+}
+
+bool svpIsMultipleOpaqueSupportCTR( void )
+{
+    RDKPerf perf(__FUNCTION__);
+    return svpIsMultipleOpaqueSupportCTRImpl();
+}
+
+bool svpSetHandleToTEE( void* pHandle )
+{
+    RDKPerf perf(__FUNCTION__);
+    return svpSetHandleToTEEImpl( pHandle );
+}
+
+bool svpLoadRevocationList(void)
+{
+    RDKPerf perf(__FUNCTION__);
+    return svpLoadRevocationListImpl();
+}
+
+void svpPlatformInitializePlayready(void)
+{
+    RDKPerf perf(__FUNCTION__);
+    svpPlatformInitializePlayreadyImpl();
+    return;
+}
+
+void svpPlatformInitializeWidevine(void)
+{
+    RDKPerf perf(__FUNCTION__);
+    svpPlatformInitializeWidevineImpl();
+    return;
+}
+
+void svpPlatformUninitializePlayready(void)
+{
+    RDKPerf perf(__FUNCTION__);
+    svpPlatformUninitializePlayreadyImpl();
+    return;
+}
+
+void svpPlatformUninitializeWidevine(void)
+{
+    RDKPerf perf(__FUNCTION__);
+    svpPlatformUninitializeWidevineImpl();
+    return;
+}
+
+bool svpIsSecureClockInitNeed(void)
+{
+    RDKPerf perf(__FUNCTION__);
+    return svpIsSecureClockInitNeedImpl();
+}
+
+void svpGetDrmStoragePath(std::string& readDir, std::string& storagePath, std::string& storeLocation)
+{
+    RDKPerf perf(__FUNCTION__);
+    svpGetDrmStoragePathImpl(readDir, storagePath, storeLocation);
+    return;
+}
+
 gboolean svp_pipeline_buffers_available(void * pContext, media_type mediaType)
 {
     RDKPerf perf(__FUNCTION__);
