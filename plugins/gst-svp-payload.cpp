@@ -250,7 +250,7 @@ static gboolean svp_payload_plugin_init (GstPlugin * plugin)
                                 svp_payload_get_type());
 }
 
-#define PACKAGE_ORIGIN "https://gerrit.teamccp.com/plugins/gitiles/rdk/components/generic/gst_svp_ext/generic"
+#define PACKAGE_ORIGIN "https://github.com/rdkcentral/gst-svp-ext-community"
 #define PACKAGE "gst_svp_ext"
 
 GST_PLUGIN_DEFINE (
