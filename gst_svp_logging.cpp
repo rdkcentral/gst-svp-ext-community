@@ -79,8 +79,8 @@ void DebugBinaryData(char* szName, uint8_t* pData, size_t nSize)
     LOG(eTrace, "%s", buffer);
 }
 
-void __attribute__((constructor)) LogModuleInit();
-void __attribute__((destructor)) LogModuleTerminate();
+static void __attribute__((constructor)) LogModuleInit();
+static void __attribute__((destructor)) LogModuleTerminate();
 
 // This function is assigned to execute as a library init
 //  using __attribute__((constructor))
