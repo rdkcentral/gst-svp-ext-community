@@ -137,6 +137,25 @@ uint32_t svp_release_secure_buffers_v2_secapi_impl(void* pContext, void* pInBuf,
   return retVal;
 }
 
+gboolean svp_free_secure_buffer_v2_secapi_impl(void* pContext, void * pBuf)
+{
+  if (!pContext)
+  {
+    LOG(eError, "No context provided\n");
+    return FALSE;
+  }
+
+  if (!pBuf)
+  {
+    LOG(eError, "No buffer provided\n");
+    return FALSE;
+  }
+
+  SecOpaqueBuffer_Free((Sec_OpaqueBufferHandle*)pBuf);
+  return TRUE;
+}
+
+
 #ifdef SECAPI_V3
 static gboolean allocate_v3_memory(void** outBuffer, const size_t length)
 {
