@@ -16,12 +16,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ##########################################################################
-CXXFLAGS += -Wno-attributes -Wall -g -fpermissive -std=c++1y -fPIC
+CXXFLAGS += -Wno-attributes -Wall -g -fpermissive -std=c++1y -fPIC -MMD
 EXTRA_LDFLAGS = -lglib-2.0 -Wl,-rpath=../../,-rpath=./ -L./
 
 # Link to RDKPerf component
 EXTRA_LDFLAGS += -lrdkperf -lperftool
 
+# Build directory
+BUILD_DIR = ./build
+
+# Common SVP Meta sources
 SOURCES = \
 	gst_svp_meta.cpp \
 	gst_svp_performance.cpp \
@@ -30,10 +34,13 @@ SOURCES = \
 	gst_svp_secure_buffers_default.cpp \
 	gst_svp_header.cpp
 
+# SVP library name.  This needs to be before the include device/platform.inc and PLUGIN_INC_FILES.
+LIBCOMSVPMETA_LIB=libgstsvpext.so
+
 include device/platform.inc
 
-OBJS=$(addsuffix .o, $(basename $(SOURCES)))
-LIBCOMSVPMETA_LIB=libgstsvpext.so
+OBJS=$(addprefix build/, $(addsuffix .o, $(basename $(SOURCES))))
+DEPS=$(addprefix build/, $(addsuffix .d, $(basename $(SOURCES))))
 
 .phony: lib clean
 
@@ -42,9 +49,13 @@ lib: $(LIBCOMSVPMETA_LIB) libgstsvppay.so
 else
 lib: $(LIBCOMSVPMETA_LIB)
 endif
-%.o: %.cpp
-	 @echo Compiling $<...
-	 $(CXX) -c $< $(CXXFLAGS) -o $@
+
+
+$(BUILD_DIR)/%.o: %.cpp
+	@mkdir -p $(BUILD_DIR)
+	@mkdir -p $(BUILD_DIR)/device
+	@echo Compiling $<...
+	$(CXX) -c $< $(CXXFLAGS) -o $@
 
 $(LIBCOMSVPMETA_LIB):  $(OBJS)
 	@echo Dynamic library creating $(OBJS) ...
@@ -62,7 +73,7 @@ ifeq ($(PLATFORM_SVP),AMLOGIC)
 endif
 
 cleanall:
-	@rm -rf $(LIBCOMSVPMETA_LIB) *.o device/*.o
+	@rm -rf $(LIBCOMSVPMETA_LIB) $(BUILD_DIR)
 ifeq ($(PLATFORM_SVP),AMLOGIC2)
 	@rm -rf libgstsvppay.so
 endif

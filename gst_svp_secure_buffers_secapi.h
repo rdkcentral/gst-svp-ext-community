@@ -26,6 +26,8 @@ G_BEGIN_DECLS
 uint32_t svp_allocate_secure_buffers_v2_secapi_impl(void* pContext, void** ppInBuf, void** ppOutBuf, const uint8_t* pInData, const size_t nDataLen);
 uint32_t svp_release_secure_buffers_v2_secapi_impl(void* pContext, void* pInBuf, void* pOutBuf, uint8_t* pDataOut, size_t nDataOutMax);
 
+gboolean svp_free_secure_buffer_v2_secapi_impl(void* pContext, void * pBuf);
+
 #ifdef SECAPI_V3
 uint32_t svp_allocate_secure_buffers_v3_impl_default(void* pContext, void** ppInBuf, void** ppOutBuf, const uint8_t* pInData, const size_t nDataLen);
 uint32_t svp_release_secure_buffers_v3_impl_default(void* pContext, void* pInBuf, void* pOutBuf, uint8_t* pDataOut, size_t nDataOutMax);
