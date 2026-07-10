@@ -24,6 +24,10 @@ static struct {
     svp_allocate_secure_buffers_t   svp_allocate_secure_buffers;
     svp_release_secure_buffers_t    svp_release_secure_buffers;
 
+    svp_allocate_secure_buffer_t   svp_allocate_secure_buffer;
+    svp_free_secure_buffer_t    svp_free_secure_buffer;
+    svp_release_secure_buffer_t   svp_release_secure_buffer;
+
     svp_set_context_flag_t svp_context_set_v3;
     svp_get_context_flag_t svp_context_get_v3;
 
@@ -31,6 +35,14 @@ static struct {
     svp_release_sec_mem_t svp_release_sec_mem;
 
     svp_support_mem_prealloc_t svp_support_sec_mem_prealloc;
+
+    svp_create_platform_allocator_t svp_create_platform_allocator;
+
+    svp_is_buffer_using_secure_memory_t svp_is_buffer_using_secure_memory;
+
+    gst_svp_ext_transform_caps_clear_t svp_ext_transform_caps_clear;
+
+    svp_header_extract_output_buffer_t svp_header_extract_output_buffer;
 }s_gst_svp_context;
 
 void  __attribute__((weak)) gst_svp_init_device_context()
@@ -42,6 +54,7 @@ void  __attribute__((weak)) gst_svp_init_device_context()
 
 void svp_context_set_secapi_v3_default(void * pContext, const gboolean wantV3);
 gboolean svp_context_get_secapi_v3_default(void * pContext);
+void * gst_svp_ext_create_platform_allocator_default();
 
 static void __attribute__((constructor)) gst_svp_init();
 static void __attribute__((destructor)) gst_svp_terminate();
@@ -53,6 +66,10 @@ static void gst_svp_init()
     svp_allocate_secure_buffers_set(&svp_allocate_secure_buffers_v2_impl_default);
     svp_release_secure_buffers_set(&svp_release_secure_buffers_v2_impl_default);
 
+    svp_allocate_secure_buffer_set(&svp_allocate_secure_buffer_default);
+    svp_free_secure_buffer_set(&svp_free_secure_buffer_default);
+    svp_release_secure_buffer_set(&svp_release_secure_buffer_default);
+
     svp_set_context_v3_set(&svp_context_set_secapi_v3_default);
     svp_get_context_v3_set(&svp_context_get_secapi_v3_default);
 
@@ -61,16 +78,24 @@ static void gst_svp_init()
 
     svp_support_mem_prealloc_set(&support_sec_mem_prealloc_default);
 
+    svp_create_platform_allocator_set(&gst_svp_ext_create_platform_allocator_default);
+
+    gst_svp_is_buffer_using_secure_memory_set(&gst_svp_is_buffer_using_secure_memory_default);
+
+    gst_svp_ext_transform_caps_clear_set(&gst_svp_ext_transform_caps_clear_default);
+
+    svp_header_extract_output_buffer_set(&svp_header_extract_output_buffer_default);
+
     gst_svp_init_device_context();
 }
 
-gboolean allocate_sec_mem_default(void * pContext, uint32_t * handle, const gsize physicalDataSize)
+gboolean allocate_sec_mem_default(void * pContext, void * handle, gsize * const physicalDataSize)
 {
     LOG(eError, "No implementation provided to allocate sec mem");
     return false;
 }
 
-gboolean release_sec_mem_default(void * pContext, const uint32_t handle)
+gboolean release_sec_mem_default(void * pContext, void * handle)
 {
     LOG(eError, "No implementation provided to release sec mem");
     return false;
@@ -83,6 +108,29 @@ gboolean support_sec_mem_prealloc_default(void * pContext)
         and not all platforms will implement this
     */
     return false;
+}
+
+void * gst_svp_ext_create_platform_allocator_default()
+{
+    LOG(eError, "No platform allocator is implemented\n");
+    return nullptr;
+}
+
+gboolean gst_svp_is_buffer_using_secure_memory_default(void * pContext, GstBuffer * buffer)
+{
+    LOG(eError, "No implementation provided\n");
+    return false;
+}
+
+void gst_svp_ext_transform_caps_clear_default(void * pContext, GstCaps* caps)
+{
+    LOG(eError, "No implementation provided\n");
+}
+
+void * svp_header_extract_output_buffer_default(void * headerData)
+{
+    LOG(eError, "No implementation provided\n");
+    return nullptr;
 }
 
 // This function is assigned to execute as library unload
@@ -279,19 +327,35 @@ uint32_t svp_release_secure_buffers(void* pContext, void* pInBuf, void* pOutBuf,
     return s_gst_svp_context.svp_release_secure_buffers(pContext, pInBuf, pOutBuf, pDataOut, nDataOutMax);
 }
 
+gboolean svp_allocate_secure_buffer(void* pContext, void ** ppBuf, const uint8_t* pInData, const size_t nDataLen)
+{
+    RDKPerf perf(__FUNCTION__);
+    return s_gst_svp_context.svp_allocate_secure_buffer(pContext, ppBuf, pInData, nDataLen);
+}
+gboolean svp_free_secure_buffer(void* pContext, void * pBuf)
+{
+    RDKPerf perf(__FUNCTION__);
+    return s_gst_svp_context.svp_free_secure_buffer(pContext, pBuf);
+}
+gboolean svp_release_secure_buffer(void* pContext, void * pBuf)
+{
+    RDKPerf perf(__FUNCTION__);
+    return s_gst_svp_context.svp_release_secure_buffer(pContext, pBuf);
+}
+
 gboolean gst_svp_context_supports_memory_prealloc(void * pContext)
 {
     RDKPerf perf(__FUNCTION__);
     return s_gst_svp_context.svp_support_sec_mem_prealloc(pContext);
 }
 
-gboolean gst_svp_allocate_sec_mem(void * pContext, uint32_t * handle, const gsize physicalDataSize)
+gboolean gst_svp_allocate_sec_mem(void * pContext, void * handle, gsize * const physicalDataSize)
 {
     RDKPerf perf(__FUNCTION__);
     return s_gst_svp_context.svp_alloc_sec_mem(pContext, handle, physicalDataSize);
 }
 
-gboolean gst_svp_release_sec_mem(void * pContext, const uint32_t handle)
+gboolean gst_svp_release_sec_mem(void * pContext, void * handle)
 {
     RDKPerf perf(__FUNCTION__);
     return s_gst_svp_context.svp_release_sec_mem(pContext, handle);
@@ -315,6 +379,21 @@ void svp_allocate_secure_buffers_set(svp_allocate_secure_buffers_t pFunc)
 void svp_release_secure_buffers_set(svp_release_secure_buffers_t pFunc)
 {
     s_gst_svp_context.svp_release_secure_buffers = pFunc;
+}
+
+void svp_allocate_secure_buffer_set(svp_allocate_secure_buffer_t pFunc)
+{
+    s_gst_svp_context.svp_allocate_secure_buffer = pFunc;
+}
+
+void svp_free_secure_buffer_set(svp_free_secure_buffer_t pFunc)
+{
+    s_gst_svp_context.svp_free_secure_buffer = pFunc;
+}
+
+void svp_release_secure_buffer_set(svp_release_secure_buffer_t pFunc)
+{
+    s_gst_svp_context.svp_release_secure_buffer = pFunc;
 }
 
 void svp_set_context_v3_set(svp_set_context_flag_t pFunc)
@@ -353,3 +432,42 @@ void svp_support_mem_prealloc_set(svp_support_mem_prealloc_t pFunc)
     s_gst_svp_context.svp_support_sec_mem_prealloc = pFunc;
 }
 
+void svp_header_extract_output_buffer_set(svp_header_extract_output_buffer_t pFunc)
+{
+    s_gst_svp_context.svp_header_extract_output_buffer = pFunc;
+}
+
+void * svp_header_extract_output_buffer(void * headerData)
+{
+    return s_gst_svp_context.svp_header_extract_output_buffer(headerData);
+}
+
+void gst_svp_is_buffer_using_secure_memory_set(svp_is_buffer_using_secure_memory_t pFunc)
+{
+    s_gst_svp_context.svp_is_buffer_using_secure_memory = pFunc;
+}
+
+void gst_svp_ext_transform_caps_clear_set(gst_svp_ext_transform_caps_clear_t pFunc)
+{
+    s_gst_svp_context.svp_ext_transform_caps_clear = pFunc;
+}
+
+gboolean gst_svp_is_buffer_using_secure_memory(void * pContext, GstBuffer * buffer)
+{
+    return s_gst_svp_context.svp_is_buffer_using_secure_memory(pContext, buffer);
+}
+
+void gst_svp_ext_transform_caps_clear(void * pContext, GstCaps* caps)
+{
+    s_gst_svp_context.svp_ext_transform_caps_clear(pContext, caps);
+}
+void svp_create_platform_allocator_set(svp_create_platform_allocator_t pFunc)
+{
+    s_gst_svp_context.svp_create_platform_allocator = pFunc;
+}
+
+void * gst_svp_ext_create_platform_allocator()
+{
+    RDKPerf perf(__FUNCTION__);
+    return s_gst_svp_context.svp_create_platform_allocator();
+}

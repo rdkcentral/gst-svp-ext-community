@@ -18,6 +18,7 @@
 */
 #include "gst_svp_header.h"
 #include "gst_svp_meta.h"
+#include "gst_svp_meta_private.h"
 #include "gst_svp_logging.h"
 
 #include <gst/base/gstbytereader.h>
@@ -32,12 +33,72 @@ typedef struct SvpHeader_t {
     uint32_t type = 0;
     uint32_t version = 0;
     uint32_t dataSize = 0;
-    uint32_t handle = 0;
+    uint8_t handle[1] = {0};    // Dynamic array at end of struct - typically of size svp_token_size()
 } SvpHeader;
 
 gsize gst_svp_header_size(void * pContext)
 {
-    return sizeof(SvpHeader);
+    return sizeof(SvpHeader) + svp_token_size();
+}
+
+gboolean gst_svp_header_set_field_v2(void * pContext, void * const buffer, const SvpHeaderFieldName fieldName, void * value)
+{
+    SvpHeader * const header = reinterpret_cast<SvpHeader * const>(buffer);
+
+    if (!header)
+    {
+        LOG(eError, "Cannot set field on null header");
+        return false;
+    }
+
+    switch (fieldName)
+    {
+        case SvpHeaderFieldName::Type:
+            header->type = *((uint32_t*)value);
+            return true;
+        case SvpHeaderFieldName::Version:
+            header->version = *((uint32_t*)value);
+            return true;
+        case SvpHeaderFieldName::DataSize:
+            header->dataSize = *((uint32_t*)value);
+            return true;
+        case SvpHeaderFieldName::OutputBuffer:
+            memcpy(&header->handle, value, svp_token_size());
+            return true;
+        default:
+            LOG(eError, "Unknown SVP Header flag: %d\n", fieldName);
+    }
+    return false;
+}
+
+gboolean gst_svp_header_get_field_v2(void * pContext, const void * const buffer, const SvpHeaderFieldName fieldName, void * value)
+{
+    const SvpHeader * const header = reinterpret_cast<const SvpHeader * const>(buffer);
+
+    if (!header)
+    {
+        LOG(eError, "Cannot get field from null header\n");
+        return false;
+    }
+
+    switch (fieldName)
+    {
+        case SvpHeaderFieldName::Type:
+            *((uint32_t*)value) = header->type;
+            return true;
+        case SvpHeaderFieldName::Version:
+            *((uint32_t*)value) = header->version;
+            return true;
+        case SvpHeaderFieldName::DataSize:
+            *((uint32_t*)value) = header->dataSize;
+            return true;
+        case SvpHeaderFieldName::OutputBuffer:
+            *((void**)value) = svp_header_extract_output_buffer(header->handle);
+            return true;
+        default:
+            LOG(eError, "Unknown SVP Header flag: %d\n", fieldName);
+    }
+    return false;
 }
 
 gboolean gst_svp_header_set_field(void * pContext, void * const buffer, const SvpHeaderFieldName fieldName, const uint32_t value)
@@ -62,7 +123,7 @@ gboolean gst_svp_header_set_field(void * pContext, void * const buffer, const Sv
             header->dataSize = value;
             return true;
         case SvpHeaderFieldName::OutputBuffer:
-            header->handle = value;
+            *((uint32_t*)&header->handle) = value;
             return true;
         default:
             LOG(eError, "Unknown SVP Header flag: %d\n", fieldName);
@@ -73,10 +134,9 @@ gboolean gst_svp_header_set_field(void * pContext, void * const buffer, const Sv
 gboolean gst_svp_header_get_field(void * pContext, const void * const buffer, const SvpHeaderFieldName fieldName, uint32_t * const value)
 {
     const SvpHeader * const header = reinterpret_cast<const SvpHeader * const>(buffer);
-
     if (!header)
     {
-        LOG(eError, "Cannot get field from null header");
+        LOG(eError, "Cannot get field from null header\n");
         return false;
     }
 
@@ -87,11 +147,16 @@ gboolean gst_svp_header_get_field(void * pContext, const void * const buffer, co
             return true;
         case SvpHeaderFieldName::Version:
             *value = header->version;
+            return true;
         case SvpHeaderFieldName::DataSize:
             *value = header->dataSize;
             return true;
         case SvpHeaderFieldName::OutputBuffer:
-            *value = header->handle;
+#ifndef MEDIATEK
+            *((uint32_t*)value) = ((uint32_t*) header->handle)[0];
+#else
+            memcpy((void*) value, header->handle, 400);
+#endif
             return true;
         default:
             LOG(eError, "Unknown SVP Header flag: %d\n", fieldName);
@@ -101,14 +166,14 @@ gboolean gst_svp_header_get_field(void * pContext, const void * const buffer, co
 
 gboolean gst_svp_has_header(void * pContext, const void * const buffer)
 {
-    static const SvpHeader defaultHeader;
+    static const SvpHeader defaultHeader{};
 
     return memcmp(buffer, defaultHeader.GUID, GUID_SIZE) == 0;
 }
 
 void gst_svp_write_header(void * pContext, void * const buffer)
 {
-    static const SvpHeader defaultHeader;
+    static const SvpHeader defaultHeader{};
 
     memcpy(buffer, reinterpret_cast<const void * const>(&defaultHeader), gst_svp_header_size(pContext));
 }
@@ -140,22 +205,30 @@ gsize gst_svp_allocate_data_block(void * pContext, void ** ppData, const gsize e
 
     if (ppData)
     {
-        *ppData = g_malloc(totalBlockSize);
+        *ppData = g_malloc0(totalBlockSize);
 
         gst_svp_write_header(pContext, *ppData);
         gst_svp_header_set_field(pContext, *ppData, SvpHeaderFieldName::DataSize, encryptedDataSize);
 
         if (needSecMemAlloc)
         {
-            uint32_t handle = 0;
-            if (!gst_svp_allocate_sec_mem(pContext, &handle, encryptedDataSize))
+            gsize allocatedDataSize = encryptedDataSize;
+            void * handle = (void*) &((SvpHeader*) *ppData)->handle;
+            if (!gst_svp_allocate_sec_mem(pContext, handle, &allocatedDataSize))
             {
                 LOG(eError, "Failed to allocate secure memory\n");
             }
             else
             {
-                gst_svp_header_set_field(pContext, *ppData, SvpHeaderFieldName::OutputBuffer, handle);
-                gst_svp_header_set_field(pContext, *ppData, SvpHeaderFieldName::Type, TokenType::PreAllocatedHandle);
+                if (allocatedDataSize == 0)
+                {
+                    LOG(eTrace, "Detected dummy handle creation\n");
+                    gst_svp_header_set_field(pContext, *ppData, SvpHeaderFieldName::Type, TokenType::Fake);
+                }
+                else
+                {
+                    gst_svp_header_set_field(pContext, *ppData, SvpHeaderFieldName::Type, TokenType::PreAllocatedHandle);
+                }
             }
         }
     }
@@ -177,11 +250,23 @@ void gst_svp_free_data_block(void * pContext, void * pData)
 
     if (gst_svp_has_header(pContext, pData))
     {
-        uint32_t handle = 0;
-        if (gst_svp_header_get_field(pContext, pData, SvpHeaderFieldName::OutputBuffer, &handle) && handle != 0)
+        uint32_t type = TokenType::InPlace;
+        if (!gst_svp_header_get_field_v2(pContext, pData, SvpHeaderFieldName::Type, (void*)&type))
         {
-            LOG(eTrace, "Releasing secure memory %" PRIu32 "\n", handle);
-            gst_svp_release_sec_mem(pContext, handle);
+            LOG(eError, "Error getting token type\n");
+        }
+
+        if (type == TokenType::PreAllocatedHandle || type == TokenType::Fake)
+        {
+            void * handle = nullptr;
+            if (gst_svp_header_get_field_v2(pContext, pData, SvpHeaderFieldName::OutputBuffer, (void*)&handle))
+            {
+                gst_svp_release_sec_mem(pContext, handle);
+            }
+            else
+            {
+                LOG(eError, "Failed to get pre-allocated handle from the svp header\n");
+            }
         }
     }
     else    // This shouldn't ever happen
