@@ -38,6 +38,7 @@ gboolean gst_svp_ext_free_context_impl(void * pContext);
 gboolean gst_svp_ext_transform_caps_impl(GstCaps **caps, gboolean bEncrypted);
 gboolean gst_buffer_svp_transform_from_cleardata_impl(void * pContext, GstBuffer* buffer, media_type mediaType);
 gboolean gst_buffer_append_svp_transform_impl(void * pContext, GstBuffer* buffer, GstBuffer* subSampleBuffer, const guint32 subSampleCount, guint8* encryptedData,const guint32 mappedDataSize=0);
+gboolean gst_buffer_vector_append_svp_transform_impl(void * pContext, const std::vector<GstBuffer*> &vbuffer, guint8* encryptedData, const guint32 dataSize);
 gboolean gst_buffer_append_svp_metadata_impl(GstBuffer * buffer,  svp_meta_data_t * svp_metadata, const guint32 mappedDataSize=0);
 gboolean svp_buffer_to_token_impl(void * pContext, void* svp_handle, void* svp_token);
 gboolean svp_buffer_from_token_impl(void * pContext, void* svp_token, void* svp_handle);

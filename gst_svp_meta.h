@@ -23,6 +23,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <string.h>
+#include <vector>
 
 #include <gst/gst.h>
 #include <gst/base/gstbytereader.h>
@@ -98,9 +99,11 @@ gboolean gst_buffer_svp_transform_from_cleardata(void * pContext, GstBuffer* buf
 #ifdef __cplusplus
 gboolean gst_buffer_append_svp_transform(void * pContext, GstBuffer* buffer, GstBuffer* subSampleBuffer, const guint32 subSampleCount, guint8* encryptedData,const guint32 mappedDataSize = 0);
 gboolean gst_buffer_append_svp_metadata(GstBuffer * buffer,  svp_meta_data_t * svp_metadata, const guint32 mappedDataSize = 0);
+gboolean gst_buffer_vector_append_svp_transform(void * pContext, const std::vector<GstBuffer*> &vbuffer, guint8* encryptedData, const guint32 dataSize);
 #else
 gboolean gst_buffer_append_svp_transform(void * pContext, GstBuffer* buffer, GstBuffer* subSampleBuffer, const guint32 subSampleCount, guint8* encryptedData,const guint32 mappedDataSize);
 gboolean gst_buffer_append_svp_metadata(GstBuffer * buffer,  svp_meta_data_t * svp_metadata, const guint32 mappedDataSize);
+gboolean gst_buffer_vector_append_svp_transform(void * pContext, const std::vector<GstBuffer*> &vbuffer, guint8* encryptedData, const guint32 dataSize);
 #endif
 gboolean svp_buffer_to_token(void * pContext, void* svp_handle, void* svp_token);
 gboolean svp_buffer_from_token(void * pContext, void* svp_token, void* svp_handle);

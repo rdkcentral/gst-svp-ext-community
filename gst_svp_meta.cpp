@@ -176,6 +176,12 @@ gboolean gst_buffer_append_svp_transform(void * pContext, GstBuffer* buffer, Gst
     return gst_buffer_append_svp_transform_impl(pContext, buffer, subSampleBuffer, subSampleCount, encryptedData, mappedDataSize);
 }
 
+gboolean gst_buffer_vector_append_svp_transform(void * pContext, const std::vector<GstBuffer*> &vbuffer, guint8* encryptedData, const guint32 dataSize)
+{
+    RDKPerf perf(__FUNCTION__);
+    return gst_buffer_vector_append_svp_transform_impl(pContext, vbuffer, encryptedData, dataSize);
+}
+
 gboolean gst_buffer_append_svp_metadata(GstBuffer* buffer,  svp_meta_data_t* svp_metadata, const guint32 mappedDataSize)
 {
     RDKPerf perf(__FUNCTION__);
