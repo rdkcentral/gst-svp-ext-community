@@ -164,6 +164,12 @@ gboolean svp_buffer_free_token(void *token)
     return  svp_buffer_free_token_impl(token);
 }
 
+gboolean svp_buffer_destroy_token(void *token)
+{
+    RDKPerf perf(__FUNCTION__);
+    return  svp_buffer_destroy_token_impl(token);
+}
+
 void svpGetDrmOEMContext(void ** ppdrmOemContext)
 {
     RDKPerf perf(__FUNCTION__);

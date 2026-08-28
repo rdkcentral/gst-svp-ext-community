@@ -42,6 +42,7 @@ gboolean svp_buffer_from_token_impl(void * pContext, void* svp_token, void* svp_
 guint32  svp_token_size_impl(void);
 gboolean svp_buffer_alloc_token_impl(void **token);
 gboolean svp_buffer_free_token_impl(void *token);
+gboolean svp_buffer_destroy_token_impl(void *token);
 gboolean svp_pipeline_buffers_available_impl(void * pContext, media_type mediaType);
 gboolean gst_buffer_append_init_metadata_impl(GstBuffer * buffer);
 void svpGetDrmOEMContextImpl(void ** ppdrmOemContext);
