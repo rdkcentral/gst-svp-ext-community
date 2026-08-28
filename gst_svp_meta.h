@@ -47,7 +47,8 @@ typedef struct svp_meta_data {
 typedef enum context_type_e {
     Server = 0,
     Client,
-    InProcess
+    InProcess,
+    VideoSink
 } context_type;
 
 typedef enum media_type_e
@@ -94,8 +95,13 @@ gboolean gst_svp_ext_context_set_caps(void * pContext, GstCaps *caps);
 gboolean gst_svp_ext_free_context(void * pContext);
 gboolean gst_svp_ext_transform_caps(GstCaps **caps, gboolean bEncrypted);
 gboolean gst_buffer_svp_transform_from_cleardata(void * pContext, GstBuffer* buffer, media_type mediaType);
-gboolean gst_buffer_append_svp_transform(void * pContext, GstBuffer* buffer, GstBuffer* subSampleBuffer, const guint32 subSampleCount, guint8* encryptedData,const guint32 mappedDataSize=0);
-gboolean gst_buffer_append_svp_metadata(GstBuffer * buffer,  svp_meta_data_t * svp_metadata, const guint32 mappedDataSize=0);
+#ifdef __cplusplus
+gboolean gst_buffer_append_svp_transform(void * pContext, GstBuffer* buffer, GstBuffer* subSampleBuffer, const guint32 subSampleCount, guint8* encryptedData,const guint32 mappedDataSize = 0);
+gboolean gst_buffer_append_svp_metadata(GstBuffer * buffer,  svp_meta_data_t * svp_metadata, const guint32 mappedDataSize = 0);
+#else
+gboolean gst_buffer_append_svp_transform(void * pContext, GstBuffer* buffer, GstBuffer* subSampleBuffer, const guint32 subSampleCount, guint8* encryptedData,const guint32 mappedDataSize);
+gboolean gst_buffer_append_svp_metadata(GstBuffer * buffer,  svp_meta_data_t * svp_metadata, const guint32 mappedDataSize);
+#endif
 gboolean svp_buffer_to_token(void * pContext, void* svp_handle, void* svp_token);
 gboolean svp_buffer_from_token(void * pContext, void* svp_token, void* svp_handle);
 guint32  svp_token_size(void);
@@ -119,6 +125,10 @@ gboolean svp_buffer_destroy_token(void *token);
 gboolean svp_pipeline_buffers_available(void * pContext, media_type mediaType);
 gboolean gst_buffer_append_init_metadata(GstBuffer * buffer);
 
+gboolean gst_svp_is_buffer_using_secure_memory(void * pContext, GstBuffer * buffer);
+void gst_svp_ext_transform_caps_clear(void * pContext, GstCaps* caps);
+
+
 /*
  * gst-svp-ext SoC specific Implementation should be provide for below APIs
  */
@@ -140,6 +150,11 @@ bool svpIsSecureClockInitNeed(void);
 uint32_t svp_allocate_secure_buffers(void* pContext, void** ppInBuf, void** ppOutBuf, const uint8_t* pInData, const size_t nDataLen);
 uint32_t svp_release_secure_buffers(void* pContext,  void* pInBuf, void* pOutBuf, uint8_t* pDataOut, size_t nDataOutMax);
 
+gboolean svp_allocate_secure_buffer(void* pContext, void ** ppBuf, const uint8_t* pInData, const size_t nDataLen);
+gboolean svp_free_secure_buffer(void* pContext, void * pBuf);
+gboolean svp_release_secure_buffer(void* pContext, void * pBuf);
+
+
 void svp_context_set_secapi_v3(void * pContext, const gboolean wantV3);
 gboolean svp_context_get_secapi_v3(void * pContext);
 
@@ -156,8 +171,8 @@ gboolean gst_svp_context_supports_memory_prealloc(void * pContext);
  * Allocate/release platform specific secure memory for use in svp header
  * memory pre-allocation
  */
-gboolean gst_svp_allocate_sec_mem(void * pContext, uint32_t * handle, const gsize physicalDataSize);
-gboolean gst_svp_release_sec_mem(void * pContext, const uint32_t handle);
+gboolean gst_svp_allocate_sec_mem(void * pContext, void * handle, gsize * const physicalDataSize);
+gboolean gst_svp_release_sec_mem(void * pContext, void * handle);
 
 
 G_END_DECLS
