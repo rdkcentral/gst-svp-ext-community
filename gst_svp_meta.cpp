@@ -43,6 +43,9 @@ static struct {
     gst_svp_ext_transform_caps_clear_t svp_ext_transform_caps_clear;
 
     svp_header_extract_output_buffer_t svp_header_extract_output_buffer;
+
+    gst_svp_is_multiple_decrypt_supported_t gst_svp_is_multiple_decrypt_supported;
+    gst_buffer_vector_append_svp_transform_t gst_buffer_vector_append_svp_transform;
 }s_gst_svp_context;
 
 void  __attribute__((weak)) gst_svp_init_device_context()
@@ -85,6 +88,9 @@ static void gst_svp_init()
     gst_svp_ext_transform_caps_clear_set(&gst_svp_ext_transform_caps_clear_default);
 
     svp_header_extract_output_buffer_set(&svp_header_extract_output_buffer_default);
+
+    gst_svp_is_multiple_decrypt_supported_set(&gst_svp_is_multiple_decrypt_supported_default);
+    gst_buffer_vector_append_svp_transform_set(&gst_buffer_vector_append_svp_transform_default);
 
     gst_svp_init_device_context();
 }
@@ -133,6 +139,17 @@ void * svp_header_extract_output_buffer_default(void * headerData)
     return nullptr;
 }
 
+gboolean gst_svp_is_multiple_decrypt_supported_default(void)
+{
+    return false;
+}
+
+gboolean gst_buffer_vector_append_svp_transform_default(void * pContext, const std::vector<GstBuffer*> &vbuffer, guint8* encryptedData, const guint32 dataSize)
+{
+    LOG(eError, "No implementation provided\n");
+    return false;
+}
+
 // This function is assigned to execute as library unload
 // using __attribute__((destructor))
 static void gst_svp_terminate()
@@ -174,12 +191,6 @@ gboolean gst_buffer_append_svp_transform(void * pContext, GstBuffer* buffer, Gst
 {
     RDKPerf perf(__FUNCTION__);
     return gst_buffer_append_svp_transform_impl(pContext, buffer, subSampleBuffer, subSampleCount, encryptedData, mappedDataSize);
-}
-
-gboolean gst_buffer_vector_append_svp_transform(void * pContext, const std::vector<GstBuffer*> &vbuffer, guint8* encryptedData, const guint32 dataSize)
-{
-    RDKPerf perf(__FUNCTION__);
-    return gst_buffer_vector_append_svp_transform_impl(pContext, vbuffer, encryptedData, dataSize);
 }
 
 gboolean gst_buffer_append_svp_metadata(GstBuffer* buffer,  svp_meta_data_t* svp_metadata, const guint32 mappedDataSize)
@@ -476,4 +487,22 @@ void * gst_svp_ext_create_platform_allocator()
 {
     RDKPerf perf(__FUNCTION__);
     return s_gst_svp_context.svp_create_platform_allocator();
+}
+
+void gst_svp_is_multiple_decrypt_supported_set(gst_svp_is_multiple_decrypt_supported_t pFunc)
+{
+    s_gst_svp_context.gst_svp_is_multiple_decrypt_supported = pFunc;
+}
+gboolean gst_svp_is_multiple_decrypt_supported(void)
+{
+    return s_gst_svp_context.gst_svp_is_multiple_decrypt_supported();
+}
+
+void gst_buffer_vector_append_svp_transform_set(gst_buffer_vector_append_svp_transform_t pFunc)
+{
+    s_gst_svp_context.gst_buffer_vector_append_svp_transform = pFunc;
+}
+gboolean gst_buffer_vector_append_svp_transform(void * pContext, const std::vector<GstBuffer*> &vbuffer, guint8* encryptedData, const guint32 dataSize)
+{
+    return s_gst_svp_context.gst_buffer_vector_append_svp_transform(pContext, vbuffer, encryptedData, dataSize);
 }
