@@ -106,7 +106,22 @@ gboolean svp_buffer_to_token(void * pContext, void* svp_handle, void* svp_token)
 gboolean svp_buffer_from_token(void * pContext, void* svp_token, void* svp_handle);
 guint32  svp_token_size(void);
 gboolean svp_buffer_alloc_token(void **token);
+/*
+ * Releases only the local storage allocated by svp_buffer_alloc_token().
+ * Use this once the token's contents have been handed off downstream
+ * (e.g. written into an output buffer) for another party to redeem.
+ * It does NOT release the underlying platform token created by
+ * svp_buffer_to_token() - use svp_buffer_destroy_token() for that.
+ */
 gboolean svp_buffer_free_token(void *token);
+/*
+ * Releases the underlying platform token created by svp_buffer_to_token()
+ * (if any) in addition to the local storage allocated by
+ * svp_buffer_alloc_token(). Use this to abandon a token that was created
+ * but will never be redeemed downstream (e.g. on an error path), so the
+ * platform resource backing it is not leaked.
+ */
+gboolean svp_buffer_destroy_token(void *token);
 gboolean svp_pipeline_buffers_available(void * pContext, media_type mediaType);
 gboolean gst_buffer_append_init_metadata(GstBuffer * buffer);
 
