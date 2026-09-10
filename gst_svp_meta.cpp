@@ -43,6 +43,8 @@ static struct {
     gst_svp_ext_transform_caps_clear_t svp_ext_transform_caps_clear;
 
     svp_header_extract_output_buffer_t svp_header_extract_output_buffer;
+
+    svp_buffer_destroy_token_t svp_buffer_destroy_token;
 }s_gst_svp_context;
 
 void  __attribute__((weak)) gst_svp_init_device_context()
@@ -86,7 +88,15 @@ static void gst_svp_init()
 
     svp_header_extract_output_buffer_set(&svp_header_extract_output_buffer_default);
 
+    svp_buffer_destroy_token_set(&svp_buffer_destroy_token_default);
+
     gst_svp_init_device_context();
+}
+
+gboolean svp_buffer_destroy_token_default(void * token)
+{
+    LOG(eError, "No implementation provided to destroy svp token");
+    return false;
 }
 
 gboolean allocate_sec_mem_default(void * pContext, void * handle, gsize * const physicalDataSize)
@@ -215,7 +225,7 @@ gboolean svp_buffer_free_token(void *token)
 gboolean svp_buffer_destroy_token(void *token)
 {
     RDKPerf perf(__FUNCTION__);
-    return  svp_buffer_destroy_token_impl(token);
+    return s_gst_svp_context.svp_buffer_destroy_token(token);
 }
 
 void svpGetDrmOEMContext(void ** ppdrmOemContext)
@@ -476,4 +486,9 @@ void * gst_svp_ext_create_platform_allocator()
 {
     RDKPerf perf(__FUNCTION__);
     return s_gst_svp_context.svp_create_platform_allocator();
+}
+
+void svp_buffer_destroy_token_set(svp_buffer_destroy_token_t pFunc)
+{
+    s_gst_svp_context.svp_buffer_destroy_token = pFunc;
 }
