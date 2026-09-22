@@ -115,7 +115,6 @@ gboolean gst_buffer_append_init_metadata(GstBuffer * buffer);
 
 gboolean gst_svp_is_buffer_using_secure_memory(void * pContext, GstBuffer * buffer);
 void gst_svp_ext_transform_caps_clear(void * pContext, GstCaps* caps);
-gboolean gst_svp_is_multiple_decrypt_supported(void);
 
 
 /*

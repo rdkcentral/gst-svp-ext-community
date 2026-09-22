@@ -135,11 +135,6 @@ void gst_svp_ext_transform_caps_clear_set(gst_svp_ext_transform_caps_clear_t pFu
 void gst_svp_ext_transform_caps_clear(void * pContext, GstCaps* caps);
 void gst_svp_ext_transform_caps_clear_default(void * pContext, GstCaps* caps);
 
-typedef gboolean (*gst_svp_is_multiple_decrypt_supported_t)(void);
-void gst_svp_is_multiple_decrypt_supported_set(gst_svp_is_multiple_decrypt_supported_t pFunc);
-gboolean gst_svp_is_multiple_decrypt_supported(void);
-gboolean gst_svp_is_multiple_decrypt_supported_default(void);
-
 typedef gboolean (*gst_buffer_vector_append_svp_transform_t)(void * pContext, const std::vector<GstBuffer*> &vbuffer, guint8* encryptedData, const guint32 dataSize);
 void gst_buffer_vector_append_svp_transform_set(gst_buffer_vector_append_svp_transform_t pFunc);
 gboolean gst_buffer_vector_append_svp_transform(void * pContext, const std::vector<GstBuffer*> &vbuffer, guint8* encryptedData, const guint32 dataSize);

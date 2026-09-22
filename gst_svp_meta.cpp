@@ -44,7 +44,6 @@ static struct {
 
     svp_header_extract_output_buffer_t svp_header_extract_output_buffer;
 
-    gst_svp_is_multiple_decrypt_supported_t gst_svp_is_multiple_decrypt_supported;
     gst_buffer_vector_append_svp_transform_t gst_buffer_vector_append_svp_transform;
 }s_gst_svp_context;
 
@@ -89,7 +88,6 @@ static void gst_svp_init()
 
     svp_header_extract_output_buffer_set(&svp_header_extract_output_buffer_default);
 
-    gst_svp_is_multiple_decrypt_supported_set(&gst_svp_is_multiple_decrypt_supported_default);
     gst_buffer_vector_append_svp_transform_set(&gst_buffer_vector_append_svp_transform_default);
 
     gst_svp_init_device_context();
@@ -137,11 +135,6 @@ void * svp_header_extract_output_buffer_default(void * headerData)
 {
     LOG(eError, "No implementation provided\n");
     return nullptr;
-}
-
-gboolean gst_svp_is_multiple_decrypt_supported_default(void)
-{
-    return false;
 }
 
 gboolean gst_buffer_vector_append_svp_transform_default(void * pContext, const std::vector<GstBuffer*> &vbuffer, guint8* encryptedData, const guint32 dataSize)
@@ -487,15 +480,6 @@ void * gst_svp_ext_create_platform_allocator()
 {
     RDKPerf perf(__FUNCTION__);
     return s_gst_svp_context.svp_create_platform_allocator();
-}
-
-void gst_svp_is_multiple_decrypt_supported_set(gst_svp_is_multiple_decrypt_supported_t pFunc)
-{
-    s_gst_svp_context.gst_svp_is_multiple_decrypt_supported = pFunc;
-}
-gboolean gst_svp_is_multiple_decrypt_supported(void)
-{
-    return s_gst_svp_context.gst_svp_is_multiple_decrypt_supported();
 }
 
 void gst_buffer_vector_append_svp_transform_set(gst_buffer_vector_append_svp_transform_t pFunc)
