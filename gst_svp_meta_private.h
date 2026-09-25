@@ -38,7 +38,7 @@ gboolean gst_svp_ext_free_context_impl(void * pContext);
 gboolean gst_svp_ext_transform_caps_impl(GstCaps **caps, gboolean bEncrypted);
 gboolean gst_buffer_svp_transform_from_cleardata_impl(void * pContext, GstBuffer* buffer, media_type mediaType);
 gboolean gst_buffer_append_svp_transform_impl(void * pContext, GstBuffer* buffer, GstBuffer* subSampleBuffer, const guint32 subSampleCount, guint8* encryptedData,const guint32 mappedDataSize=0);
-gboolean gst_buffer_vector_append_svp_transform_impl(void * pContext, const std::vector<GstBuffer*> &vbuffer, guint8* encryptedData, const guint32 dataSize);
+gboolean gst_buffer_array_append_svp_transform_impl(void * pContext, GstBuffer* buffers[], const guint16 count, guint8* encryptedData, const guint32 dataSize);
 gboolean gst_buffer_append_svp_metadata_impl(GstBuffer * buffer,  svp_meta_data_t * svp_metadata, const guint32 mappedDataSize=0);
 gboolean svp_buffer_to_token_impl(void * pContext, void* svp_handle, void* svp_token);
 gboolean svp_buffer_from_token_impl(void * pContext, void* svp_token, void* svp_handle);
@@ -135,10 +135,10 @@ void gst_svp_ext_transform_caps_clear_set(gst_svp_ext_transform_caps_clear_t pFu
 void gst_svp_ext_transform_caps_clear(void * pContext, GstCaps* caps);
 void gst_svp_ext_transform_caps_clear_default(void * pContext, GstCaps* caps);
 
-typedef gboolean (*gst_buffer_vector_append_svp_transform_t)(void * pContext, const std::vector<GstBuffer*> &vbuffer, guint8* encryptedData, const guint32 dataSize);
-void gst_buffer_vector_append_svp_transform_set(gst_buffer_vector_append_svp_transform_t pFunc);
-gboolean gst_buffer_vector_append_svp_transform(void * pContext, const std::vector<GstBuffer*> &vbuffer, guint8* encryptedData, const guint32 dataSize);
-gboolean gst_buffer_vector_append_svp_transform_default(void * pContext, const std::vector<GstBuffer*> &vbuffer, guint8* encryptedData, const guint32 dataSize);
+typedef gboolean (*gst_buffer_array_append_svp_transform_t)(void * pContext, GstBuffer* buffers[], const guint16 count, guint8* encryptedData, const guint32 dataSize);
+void gst_buffer_array_append_svp_transform_set(gst_buffer_array_append_svp_transform_t pFunc);
+gboolean gst_buffer_array_append_svp_transform(void * pContext, GstBuffer* buffers[], const guint16 count, guint8* encryptedData, const guint32 dataSize);
+gboolean gst_buffer_array_append_svp_transform_default(void * pContext, GstBuffer* buffers[], const guint16 count, guint8* encryptedData, const guint32 dataSize);
 
 G_END_DECLS
 #endif /* __GST_BUFFER_SVP_PRIVATE_H__ */
