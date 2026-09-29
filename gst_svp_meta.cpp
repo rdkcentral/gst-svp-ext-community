@@ -44,6 +44,8 @@ static struct {
 
     svp_header_extract_output_buffer_t svp_header_extract_output_buffer;
 
+    gst_buffer_array_append_svp_transform_t gst_buffer_array_append_svp_transform;
+
     svp_buffer_destroy_token_t svp_buffer_destroy_token;
 }s_gst_svp_context;
 
@@ -87,6 +89,8 @@ static void gst_svp_init()
     gst_svp_ext_transform_caps_clear_set(&gst_svp_ext_transform_caps_clear_default);
 
     svp_header_extract_output_buffer_set(&svp_header_extract_output_buffer_default);
+
+    gst_buffer_array_append_svp_transform_set(&gst_buffer_array_append_svp_transform_default);
 
     svp_buffer_destroy_token_set(&svp_buffer_destroy_token_default);
 
@@ -141,6 +145,12 @@ void * svp_header_extract_output_buffer_default(void * headerData)
 {
     LOG(eError, "No implementation provided\n");
     return nullptr;
+}
+
+gboolean gst_buffer_array_append_svp_transform_default(void * pContext, GstBuffer* buffers[], const guint16 count, guint8* encryptedData, const guint32 dataSize)
+{
+    LOG(eError, "No implementation provided\n");
+    return false;
 }
 
 // This function is assigned to execute as library unload
@@ -486,6 +496,21 @@ void * gst_svp_ext_create_platform_allocator()
 {
     RDKPerf perf(__FUNCTION__);
     return s_gst_svp_context.svp_create_platform_allocator();
+}
+
+void gst_buffer_array_append_svp_transform_set(gst_buffer_array_append_svp_transform_t pFunc)
+{
+    s_gst_svp_context.gst_buffer_array_append_svp_transform = pFunc;
+}
+gboolean gst_buffer_array_append_svp_transform(void * pContext, GstBuffer* buffers[], const guint16 count, guint8* encryptedData, const guint32 dataSize)
+{
+    return s_gst_svp_context.gst_buffer_array_append_svp_transform(pContext, buffers, count, encryptedData, dataSize);
+}
+
+gboolean gst_svp_is_multiple_decrypt_supported(void)
+{
+    return ((s_gst_svp_context.gst_buffer_array_append_svp_transform != nullptr) &&
+            (s_gst_svp_context.gst_buffer_array_append_svp_transform != &gst_buffer_array_append_svp_transform_default));
 }
 
 void svp_buffer_destroy_token_set(svp_buffer_destroy_token_t pFunc)
