@@ -45,6 +45,8 @@ static struct {
     svp_header_extract_output_buffer_t svp_header_extract_output_buffer;
 
     gst_buffer_array_append_svp_transform_t gst_buffer_array_append_svp_transform;
+
+    svp_buffer_destroy_token_t svp_buffer_destroy_token;
 }s_gst_svp_context;
 
 void  __attribute__((weak)) gst_svp_init_device_context()
@@ -90,7 +92,15 @@ static void gst_svp_init()
 
     gst_buffer_array_append_svp_transform_set(&gst_buffer_array_append_svp_transform_default);
 
+    svp_buffer_destroy_token_set(&svp_buffer_destroy_token_default);
+
     gst_svp_init_device_context();
+}
+
+gboolean svp_buffer_destroy_token_default(void * token)
+{
+    LOG(eError, "No implementation provided to destroy svp token");
+    return false;
 }
 
 gboolean allocate_sec_mem_default(void * pContext, void * handle, gsize * const physicalDataSize)
@@ -220,6 +230,12 @@ gboolean svp_buffer_free_token(void *token)
 {
     RDKPerf perf(__FUNCTION__);
     return  svp_buffer_free_token_impl(token);
+}
+
+gboolean svp_buffer_destroy_token(void *token)
+{
+    RDKPerf perf(__FUNCTION__);
+    return s_gst_svp_context.svp_buffer_destroy_token(token);
 }
 
 void svpGetDrmOEMContext(void ** ppdrmOemContext)
@@ -495,4 +511,9 @@ gboolean gst_svp_is_multiple_decrypt_supported(void)
 {
     return ((s_gst_svp_context.gst_buffer_array_append_svp_transform != nullptr) &&
             (s_gst_svp_context.gst_buffer_array_append_svp_transform != &gst_buffer_array_append_svp_transform_default));
+}
+
+void svp_buffer_destroy_token_set(svp_buffer_destroy_token_t pFunc)
+{
+    s_gst_svp_context.svp_buffer_destroy_token = pFunc;
 }

@@ -112,6 +112,10 @@ void svp_release_secure_memory_set(svp_release_sec_mem_t pFunc);
 gboolean allocate_sec_mem_default(void * pContext, void * handle, gsize * const physicalDataSize);
 gboolean release_sec_mem_default(void * pContext, void * handle);
 
+typedef gboolean (*svp_buffer_destroy_token_t)(void* token);
+void svp_buffer_destroy_token_set(svp_buffer_destroy_token_t pFunc);
+gboolean svp_buffer_destroy_token_default(void * token);
+
 typedef gboolean (*svp_support_mem_prealloc_t)(void* pContext);
 void svp_support_mem_prealloc_set(svp_support_mem_prealloc_t pFunc);
 gboolean support_sec_mem_prealloc_default(void * pContext);
