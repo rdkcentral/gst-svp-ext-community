@@ -137,5 +137,11 @@ typedef void (*gst_svp_ext_transform_caps_clear_t)(void * pContext, GstCaps* cap
 void gst_svp_ext_transform_caps_clear_set(gst_svp_ext_transform_caps_clear_t pFunc);
 void gst_svp_ext_transform_caps_clear(void * pContext, GstCaps* caps);
 void gst_svp_ext_transform_caps_clear_default(void * pContext, GstCaps* caps);
+
+typedef gboolean (*gst_buffer_array_append_svp_transform_t)(void * pContext, GstBuffer* buffers[], const guint16 count, guint8* encryptedData, const guint32 dataSize);
+void gst_buffer_array_append_svp_transform_set(gst_buffer_array_append_svp_transform_t pFunc);
+gboolean gst_buffer_array_append_svp_transform(void * pContext, GstBuffer* buffers[], const guint16 count, guint8* encryptedData, const guint32 dataSize);
+gboolean gst_buffer_array_append_svp_transform_default(void * pContext, GstBuffer* buffers[], const guint16 count, guint8* encryptedData, const guint32 dataSize);
+
 G_END_DECLS
 #endif /* __GST_BUFFER_SVP_PRIVATE_H__ */
