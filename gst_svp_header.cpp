@@ -261,7 +261,10 @@ void gst_svp_free_data_block(void * pContext, void * pData)
             void * handle = nullptr;
             if (gst_svp_header_get_field_v2(pContext, pData, SvpHeaderFieldName::OutputBuffer, (void*)&handle))
             {
-                gst_svp_release_sec_mem(pContext, handle);
+                if (handle)
+                {
+                    gst_svp_release_sec_mem(pContext, handle);
+                }
             }
             else
             {

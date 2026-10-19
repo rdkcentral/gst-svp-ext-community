@@ -20,6 +20,9 @@
 #include "gst_svp_meta_private.h"
 #include "gst_svp_logging.h"
 
+#include <sstream>
+static const NameValuePairProcessor* contextStoreNameValuePairProcessors = nullptr;
+static size_t numContextStoreNameValuePairProcessors = 0;
 static struct {
     svp_allocate_secure_buffers_t   svp_allocate_secure_buffers;
     svp_release_secure_buffers_t    svp_release_secure_buffers;
@@ -487,6 +490,89 @@ void gst_svp_ext_transform_caps_clear(void * pContext, GstCaps* caps)
 {
     s_gst_svp_context.svp_ext_transform_caps_clear(pContext, caps);
 }
+
+static gboolean processNameValuePair(void * pContext, const char * name, void * value, const size_t size, bool getOrSet /* true if get, false if set*/)
+{
+    if (!pContext)
+    {
+        LOG(eError, "pContext is null\n");
+        return false;
+    }
+
+    if (!name)
+    {
+        LOG(eError, "Missing name\n");
+        return false;
+    }
+
+    if (!value)
+    {
+        LOG(eError, "Missing value\n");
+        return false;
+    }
+
+    for (size_t i = 0; i < numContextStoreNameValuePairProcessors; ++i)
+    {
+        const NameValuePairProcessor* processor = contextStoreNameValuePairProcessors + i;
+        if (strcmp(name, processor->name) == 0)
+        {
+            LOG(eTrace, "Found handler for %s at index %zu\n", name, i);
+
+            if (processor->expectedValueSize != size)
+            {
+                LOG(eError, "Mismatch in value sizes, have: %zu, expected: %zu\n", size, processor->expectedValueSize);
+                return false;
+            }
+
+            NameValuePairHandler handler = nullptr;
+
+            if (getOrSet)   // Get
+            {
+                handler = processor->getter;
+            }
+            else    // Set
+            {
+                handler = processor->setter;
+            }
+
+            if (!handler)
+            {
+                LOG(eError, "%s not present for %s\n", getOrSet ? "Getter" : "Setter", name);
+                return false;
+            }
+            else
+            {
+                return handler(pContext, name, value);
+            }
+        }
+    }
+
+    LOG(eTrace, "Failed to find processor for %s\n", name);
+    return false;
+}
+
+gboolean gst_svp_ext_context_process_store_get_value(void * pContext, const char * name, void * value, const size_t size)
+{
+    if (!processNameValuePair(pContext, name, value, size, true /*get*/))
+    {
+        LOG(eError, "Failed to get %s\n", name);
+        return false;
+    }
+
+    return true;
+}
+
+gboolean gst_svp_ext_context_process_store_set_value(void * pContext, const char * name, void * value, const size_t size)
+{
+    if (!processNameValuePair(pContext, name, value, size, false /*set*/))
+    {
+        LOG(eTrace, "Failed to set %s\n", name);
+        return false;
+    }
+
+    return true;
+}
+
 void svp_create_platform_allocator_set(svp_create_platform_allocator_t pFunc)
 {
     s_gst_svp_context.svp_create_platform_allocator = pFunc;
@@ -496,6 +582,28 @@ void * gst_svp_ext_create_platform_allocator()
 {
     RDKPerf perf(__FUNCTION__);
     return s_gst_svp_context.svp_create_platform_allocator();
+}
+
+void set_context_store_name_value_pair_processors(const size_t numProcessors, const NameValuePairProcessor* processors)
+{
+    if (numProcessors == 0 || processors == nullptr)
+    {
+        LOG(eError, "Invalid processor list\n");
+        return;
+    }
+
+    std::stringstream ss;
+    for (size_t i = 0; i < numProcessors; ++i)
+    {
+        ss << processors[i].name;
+        if (i < numProcessors - 1) ss << ", ";
+    }
+    const std::string processorList = ss.str();
+
+    LOG(eWarning, "Loading %zu name pair processors: %s\n", numProcessors, processorList.c_str());
+
+    numContextStoreNameValuePairProcessors = numProcessors;
+    contextStoreNameValuePairProcessors = processors;
 }
 
 void gst_buffer_array_append_svp_transform_set(gst_buffer_array_append_svp_transform_t pFunc)

@@ -129,8 +129,17 @@ gboolean gst_buffer_append_init_metadata(GstBuffer * buffer);
 gboolean gst_svp_is_buffer_using_secure_memory(void * pContext, GstBuffer * buffer);
 void gst_svp_ext_transform_caps_clear(void * pContext, GstCaps* caps);
 gboolean gst_svp_is_multiple_decrypt_supported(void);
-
-
+/*
+*   Get or set values in the Gst SVP Ext process store. This store is shared between all contexts for the process.
+*
+*   @param name String that specifies the value to get/set
+*   @param value opaque ptr to the variable of the expected type for the named property.
+*   @param size Size of the variable/memory pointed to by value.
+*
+*   @return True if value was get/set, false otherwise
+*/
+gboolean gst_svp_ext_context_process_store_get_value(void * pContext, const char * name, void * value, const size_t size);
+gboolean gst_svp_ext_context_process_store_set_value(void * pContext, const char * name, void * value, const size_t size);
 /*
  * gst-svp-ext SoC specific Implementation should be provide for below APIs
  */
