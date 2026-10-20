@@ -41,3 +41,21 @@ uint32_t svp_release_secure_buffers_v2_impl_default(void* pContext, void* pInBuf
   LOG(eError, "Not implemented\n");
   return 0;
 }
+
+gboolean svp_allocate_secure_buffer_default(void* pContext, void ** ppBuf, const uint8_t* pInData, const size_t nDataLen)
+{
+  LOG(eError, "Not implemented\n");
+  return FALSE;
+}
+
+gboolean svp_free_secure_buffer_default(void* pContext, void * pBuf)
+{
+  LOG(eError, "Not implemented\n");
+  return FALSE;
+}
+
+gboolean svp_release_secure_buffer_default(void* pContext, void * pBuf)
+{
+  LOG(eError, "Not implemented\n");
+  return FALSE;
+}

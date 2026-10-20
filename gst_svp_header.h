@@ -23,14 +23,15 @@
 #include <glib.h>
 #include <gst/gst.h>
 
-#include <cstdint>
+#include <stdint.h>
 
 G_BEGIN_DECLS
 
 typedef enum TokenType_e {
     InPlace = 0,
     Handle  = 1,
-    PreAllocatedHandle = 2
+    PreAllocatedHandle = 2,
+    Fake = 3
 } TokenType;
 
 typedef enum SecAPIVersion_e {
@@ -51,6 +52,10 @@ gboolean gst_svp_header_set_field(void * pContext, void * const buffer, const Sv
 
 gboolean gst_svp_header_get_field(void * pContext, const void * const buffer, const SvpHeaderFieldName fieldName, uint32_t * const value);
 
+gboolean gst_svp_header_set_field_v2(void * pContext, void * const buffer, const SvpHeaderFieldName fieldName, void * value);
+
+gboolean gst_svp_header_get_field_v2(void * pContext, const void * const buffer, const SvpHeaderFieldName fieldName, void * value);
+
 gboolean gst_svp_has_header(void * pContext, const void * const buffer);
 
 void gst_svp_write_header(void * pContext, void * const buffer);
@@ -66,8 +71,21 @@ void gst_svp_write_header(void * pContext, void * const buffer);
  * @param needSecMemAlloc  If true, secure memory is allocated and the OutputBuffer field is set with the handle.
  * @returns Size of the allocated data
 */
+#ifdef  __cplusplus
 gsize gst_svp_allocate_data_block(void * pContext, void ** ppData, const gsize encryptedDataSize, const gsize physicalDataSize, const gboolean needSecMemAlloc = false);
+#else
+gsize gst_svp_allocate_data_block(void * pContext, void ** ppData, const gsize encryptedDataSize, const gsize physicalDataSize, const gboolean needSecMemAlloc);
+#endif
 
+/**
+ * Free an allocated data block.
+ *
+ * Any resources left in the data block will also be freed (e.g. if OutputBuffer is set then it will be freed).
+ * Prior to this call you must unset any resources you do not which to be freed.
+ *
+ * @param pContext Point to SVP context
+ * @param pData    Pointer to SVP data block data
+ */
 void gst_svp_free_data_block(void * pContext, void * pData);
 
 void * gst_svp_header_get_start_of_data(void * pContext, void * const header);
