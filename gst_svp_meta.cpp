@@ -273,18 +273,6 @@ bool svpIsDynamicSVPEncEnabled( void )
     return svpIsDynamicSVPEncEnabledImpl();
 }
 
-bool svpIsMultipleOpaqueSupportCTR( void )
-{
-    RDKPerf perf(__FUNCTION__);
-    return svpIsMultipleOpaqueSupportCTRImpl();
-}
-
-bool svpSetHandleToTEE( void* pHandle )
-{
-    RDKPerf perf(__FUNCTION__);
-    return svpSetHandleToTEEImpl( pHandle );
-}
-
 bool svpLoadRevocationList(void)
 {
     RDKPerf perf(__FUNCTION__);

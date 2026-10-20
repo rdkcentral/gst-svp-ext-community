@@ -148,8 +148,6 @@ void svpGetDrmPlatformInitData( void ** ppPlatformInitData);
 bool svpIsAudioNeedNonSVPContext(void);
 bool svpIsVideoResCheckNeed(void);
 bool svpIsDynamicSVPEncEnabled( void );
-bool svpIsMultipleOpaqueSupportCTR( void );
-bool svpSetHandleToTEE( void* pHandle );
 bool svpLoadRevocationList(void);
 void svpGetDrmStoragePath(std::string& readDir, std::string& storagePath, std::string& storeLocation);
 void svpPlatformInitializePlayready(void);
