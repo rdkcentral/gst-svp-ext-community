@@ -65,8 +65,6 @@ void svpGetDrmPlatformInitDataImpl( void ** ppPlatformInitData);
 bool svpIsAudioNeedNonSVPContextImpl(void);
 bool svpIsVideoResCheckNeedImpl(void);
 bool svpIsDynamicSVPEncEnabledImpl( void );
-bool svpIsMultipleOpaqueSupportCTRImpl( void );
-bool svpSetHandleToTEEImpl( void* pHandle );
 bool svpLoadRevocationListImpl(void);
 void svpGetDrmStoragePathImpl(std::string& readDir, std::string& storagePath, std::string& storeLocation);
 void svpPlatformWvInitImpl(void);
