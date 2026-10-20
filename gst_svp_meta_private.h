@@ -31,6 +31,14 @@
 
 G_BEGIN_DECLS
 
+typedef gboolean (*NameValuePairHandler)(void* pContext, const char * name, void * value);
+typedef struct NameValuePairProcessor {
+    const char* name;
+    const size_t expectedValueSize;
+    NameValuePairHandler getter;
+    NameValuePairHandler setter;
+} NameValuePairProcessor;
+void set_context_store_name_value_pair_processors(const size_t numProcessors, const NameValuePairProcessor * processors);
 /* Vendor specific implementations */
 gboolean gst_svp_ext_get_context_impl(void ** ppContext, context_type type, unsigned int rpcID);
 gboolean gst_svp_ext_context_set_caps_impl(void * pContext, GstCaps *caps);
@@ -49,6 +57,8 @@ gboolean gst_buffer_append_init_metadata_impl(GstBuffer * buffer);
 
 gboolean gst_svp_is_buffer_using_secure_memory_impl(void * pContext, GstBuffer * buffer);
 void gst_svp_ext_transform_caps_clear_impl(void * pContext, GstCaps* caps);
+gboolean gst_svp_ext_context_get_value_impl(void * pContext, const char * name, void * value, const size_t size);
+gboolean gst_svp_ext_context_set_value_impl(void * pContext, const char * name, void * value, const size_t size);
 
 void svpGetDrmOEMContextImpl(void ** ppdrmOemContext);
 void svpGetDrmPlatformInitDataImpl( void ** ppPlatformInitData);
