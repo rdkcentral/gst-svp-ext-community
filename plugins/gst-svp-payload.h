@@ -23,6 +23,9 @@
 
 G_BEGIN_DECLS
 
+extern const char * payloadCapsSink;
+extern const char * payloadCapsSrc;
+
 #define SVP_PAYLOAD_TYPE          (svp_payload_get_type())
 #define SVP_PAYLOAD(obj)          (G_TYPE_CHECK_INSTANCE_CAST((obj), SVP_PAYLOAD_TYPE, SvpPayload))
 #define SVP_PAYLOAD_CLASS(klass)  (G_TYPE_CHECK_CLASS_CAST((klass), SVP_PAYLOAD_TYPE, SvpPayloadClass))
@@ -36,6 +39,7 @@ GType svp_payload_get_type(void);
 struct _SvpPayload {
     GstBaseTransform parent;
     SvpPayloadPrivate *priv;
+    gboolean decrypt_to_host_enabled;
 };
 
 struct _SvpPayloadClass {
