@@ -19,20 +19,12 @@
 
 #include <gst_svp_meta.h>
 
-// Platform includes
-#ifdef PLATFORM_SVP_AMLOGIC
-extern "C" {
-#include "gstsecmemallocator.h"
-}
-#else
-#error "Not implemented for this platform yet"
-#endif
-
-#define GST_CAPS_FEATURE_MEMORY_SECMEM_MEMORY "memory:SecMem"
-#define GST_CAPS_FEATURE_MEMORY_DMABUF "memory:DMABuf"
+#include <dlfcn.h>
 
 struct _SvpPayloadPrivate {
   void* svpCtx;
+  gboolean decryptToHostSet;
+  gboolean decryptToHost;
 };
 
 GST_DEBUG_CATEGORY_STATIC(svp_payload_debug_category);
@@ -46,33 +38,39 @@ static GstStaticPadTemplate sinkTemplate =
     "sink",
     GST_PAD_SINK,
     GST_PAD_ALWAYS,
-    GST_STATIC_CAPS(
-        "video/x-h264; "
-        "video/x-h265; "
-        "video/x-vp9; "
-        "video/x-av1; "));
+    GST_STATIC_CAPS(payloadCapsSink));
 
 static GstStaticPadTemplate srcTemplate =
   GST_STATIC_PAD_TEMPLATE(
     "src",
     GST_PAD_SRC,
     GST_PAD_ALWAYS,
-    GST_STATIC_CAPS(
-        "video/x-h264(" GST_CAPS_FEATURE_MEMORY_SECMEM_MEMORY "); "
-        "video/x-h264(" GST_CAPS_FEATURE_MEMORY_DMABUF "); "
-        "video/x-h265(" GST_CAPS_FEATURE_MEMORY_SECMEM_MEMORY "); "
-        "video/x-h265(" GST_CAPS_FEATURE_MEMORY_DMABUF "); "
-        "video/x-vp9(" GST_CAPS_FEATURE_MEMORY_SECMEM_MEMORY "); "
-        "video/x-av1(" GST_CAPS_FEATURE_MEMORY_SECMEM_MEMORY "); "));
+    GST_STATIC_CAPS(payloadCapsSrc));
 
 static GstFlowReturn svpPayloadTransform(GstBaseTransform* base, GstBuffer* in, GstBuffer* out);
 static GstFlowReturn svpPayloadTransformInPlace(GstBaseTransform* base, GstBuffer* buffer);
 static GstFlowReturn svpPayloadPrepareOutputBuffer (GstBaseTransform * trans, GstBuffer * inbuf, GstBuffer ** outbuf);
 static GstCaps* svpPayloadTransformCaps(GstBaseTransform*, GstPadDirection, GstCaps*, GstCaps*);
 static GstStateChangeReturn svpPayloadChangeState(GstElement* element, GstStateChange transition);
+static gboolean has_decrypt_to_host(GstCaps *caps);
+static void svp_payload_get_property(GObject* object, guint prop_id, GValue* value, GParamSpec* pspec);
+static void svpPayloadUpdateDecryptToHost(SvpPayloadPrivate* priv, gboolean decryptToHost);
+
+enum {
+    PROP_0,
+    PROP_BUFFERS_AVAILABLE
+};
 
 static void svp_payload_class_init(SvpPayloadClass* klass)
 {
+    GObjectClass* gobject_class = G_OBJECT_CLASS(klass);
+    gobject_class->get_property = svp_payload_get_property;
+
+    g_object_class_install_property(gobject_class, PROP_BUFFERS_AVAILABLE,
+        g_param_spec_boolean("buffers-available", "Buffers Available",
+            "Whether SVP video buffers are available for use",
+            FALSE, (GParamFlags) (G_PARAM_READABLE | G_PARAM_STATIC_STRINGS)));
+
     GstElementClass* elementClass = GST_ELEMENT_CLASS(klass);
     elementClass->change_state = GST_DEBUG_FUNCPTR(svpPayloadChangeState);
     gst_element_class_add_pad_template(elementClass, gst_static_pad_template_get(&sinkTemplate));
@@ -100,12 +98,39 @@ static void svp_payload_init(SvpPayload* self)
 {
     SvpPayloadPrivate* priv = (SvpPayloadPrivate*)svp_payload_get_instance_private(self);
     priv->svpCtx = NULL;
+    priv->decryptToHostSet = FALSE;
+    priv->decryptToHost = FALSE;
     self->priv = priv;
+    self->decrypt_to_host_enabled = FALSE;
+
+    if (!gst_svp_ext_get_context(&priv->svpCtx, Server, 0))
+    {
+      GST_ERROR("Failed to get context for payloader\n");
+    }
 
     GstBaseTransform* base = GST_BASE_TRANSFORM(self);
     gst_base_transform_set_in_place(base, FALSE);
     gst_base_transform_set_passthrough(base, FALSE);
     gst_base_transform_set_gap_aware(base, FALSE);
+}
+
+static void svp_payload_get_property(GObject* object, guint prop_id, GValue* value, GParamSpec* pspec)
+{
+    SvpPayload* self = SVP_PAYLOAD(object);
+    SvpPayloadPrivate* priv = self->priv;
+
+    switch (prop_id) {
+    case PROP_BUFFERS_AVAILABLE:
+        if (priv->svpCtx) {
+            g_value_set_boolean(value, svp_pipeline_buffers_available(priv->svpCtx, Video));
+        } else {
+            g_value_set_boolean(value, FALSE);
+        }
+        break;
+    default:
+        G_OBJECT_WARN_INVALID_PROPERTY_ID(object, prop_id, pspec);
+        break;
+    }
 }
 
 static GstFlowReturn svpPayloadTransform(GstBaseTransform* base, GstBuffer* inbuf, GstBuffer* outbuf)
@@ -115,18 +140,23 @@ static GstFlowReturn svpPayloadTransform(GstBaseTransform* base, GstBuffer* inbu
     SvpPayload* self = SVP_PAYLOAD(base);
     SvpPayloadPrivate* priv = (SvpPayloadPrivate*)svp_payload_get_instance_private(self);
 
-#ifdef PLATFORM_SVP_AMLOGIC
-    GstMemory *mem = gst_buffer_peek_memory(inbuf, 0);
-    if ( gst_is_secmem_memory(mem) ) {
-       GST_DEBUG_OBJECT(base, "Already in secmem, passthrough");
-       g_return_val_if_fail((inbuf == outbuf), GST_FLOW_ERROR);
+    const gboolean decryptToHost = self->decrypt_to_host_enabled ? TRUE : FALSE;
+    svpPayloadUpdateDecryptToHost(priv, decryptToHost);
+
+    if ( gst_svp_is_buffer_using_secure_memory(priv->svpCtx, inbuf) || self->decrypt_to_host_enabled ) {
+        if (self->decrypt_to_host_enabled) {
+            GST_DEBUG_OBJECT(base, "Decrypt to host enabled, passthrough");
+        } else {
+            GST_DEBUG_OBJECT(base, "Already in secmem, passthrough");
+        }
+        g_return_val_if_fail((inbuf == outbuf), GST_FLOW_ERROR);
        return GST_FLOW_OK;
     }
-#endif
 
     if (!gst_buffer_svp_transform_from_cleardata(priv->svpCtx, outbuf, Video))
       return GST_FLOW_ERROR;
 
+    GST_DEBUG_OBJECT(base, "Successfully transformed cleardata");
     return GST_FLOW_OK;
 }
 
@@ -137,29 +167,48 @@ static GstFlowReturn svpPayloadTransformInPlace(GstBaseTransform* base, GstBuffe
     SvpPayload* self = SVP_PAYLOAD(base);
     SvpPayloadPrivate* priv = (SvpPayloadPrivate*)svp_payload_get_instance_private(self);
 
-#ifdef PLATFORM_SVP_AMLOGIC
-    GstMemory *mem = gst_buffer_peek_memory(buffer, 0);
-    if ( gst_is_secmem_memory(mem) ) {
-       GST_DEBUG_OBJECT(base, "Already in secmem, passthrough");
+    const gboolean decryptToHost = self->decrypt_to_host_enabled ? TRUE : FALSE;
+    svpPayloadUpdateDecryptToHost(priv, decryptToHost);
+
+    if ( gst_svp_is_buffer_using_secure_memory(priv->svpCtx, buffer) || self->decrypt_to_host_enabled ) {
+        if (self->decrypt_to_host_enabled) {
+            GST_DEBUG_OBJECT(base, "Decrypt to host enabled, passthrough");
+        } else {
+            GST_DEBUG_OBJECT(base, "Already in secmem, passthrough");
+        }
        return GST_FLOW_OK;
     }
-#endif
 
     if (!gst_buffer_svp_transform_from_cleardata(priv->svpCtx, buffer, Video))
         return GST_FLOW_ERROR;
 
+    GST_DEBUG_OBJECT(base, "Successfully transformed cleardata in place");
     return GST_FLOW_OK;
+}
+
+static void svpPayloadUpdateDecryptToHost(SvpPayloadPrivate* priv, gboolean decryptToHost)
+{
+    if (priv->decryptToHostSet && priv->decryptToHost == decryptToHost)
+        return;
+
+    if (gst_svp_ext_context_process_store_set_value(priv->svpCtx,
+                                                     "decryptToHost",
+                                                     &decryptToHost,
+                                                     sizeof(decryptToHost))) {
+        priv->decryptToHost = decryptToHost;
+        priv->decryptToHostSet = TRUE;
+    }
 }
 
 static GstFlowReturn svpPayloadPrepareOutputBuffer (GstBaseTransform * base, GstBuffer * inbuf, GstBuffer ** outbuf)
 {
-#ifdef PLATFORM_SVP_AMLOGIC
-    GstMemory *mem = gst_buffer_peek_memory(inbuf, 0);
-    if ( gst_is_secmem_memory(mem) ) {
+    SvpPayload* self = SVP_PAYLOAD(base);
+    SvpPayloadPrivate* priv = (SvpPayloadPrivate*)svp_payload_get_instance_private(self);
+
+    if ( gst_svp_is_buffer_using_secure_memory(priv->svpCtx, inbuf) || self->decrypt_to_host_enabled ) {
        *outbuf = inbuf;
        return GST_FLOW_OK;
     }
-#endif
 
     if ( gst_base_transform_is_in_place(base) == TRUE ) {
        GST_DEBUG_OBJECT(base, "Prepare buffer, call parent func");
@@ -177,27 +226,28 @@ static GstCaps* svpPayloadTransformCaps(GstBaseTransform* base, GstPadDirection 
         return NULL;
 
     SvpPayload* self = SVP_PAYLOAD(base);
+    SvpPayloadPrivate* priv = (SvpPayloadPrivate*)svp_payload_get_instance_private(self);
 
     GST_DEBUG_OBJECT(self, "Transform in direction: %s, caps %" GST_PTR_FORMAT ", filter %" GST_PTR_FORMAT,
                      direction == GST_PAD_SINK ? "GST_PAD_SINK" : "GST_PAD_SRC", caps, filter);
 
     GstCaps *ret = NULL;
 
+    self->decrypt_to_host_enabled = has_decrypt_to_host(caps);
+
     if (direction == GST_PAD_SINK) {
       ret = gst_caps_ref (caps);
-      if(!gst_svp_ext_transform_caps(&ret, FALSE)) {
-        gst_caps_unref(caps);
-        GST_ERROR_OBJECT(self, "Caps transform failed");
-        return NULL;
+      // avoid transforming caps if decrypt to host is enabled
+      if (self->decrypt_to_host_enabled == FALSE) {
+        if(!gst_svp_ext_transform_caps(&ret, FALSE)) {
+          gst_caps_unref(caps);
+          GST_ERROR_OBJECT(self, "Caps transform failed");
+          return NULL;
+        }
       }
     } else {
       ret = gst_caps_copy(caps);
-      unsigned int size = gst_caps_get_size(ret);
-      for (unsigned i = 0; i < size; ++i) {
-        GstCapsFeatures *feat =  gst_caps_get_features(ret, i);
-        gst_caps_features_remove(feat, GST_CAPS_FEATURE_MEMORY_SECMEM_MEMORY);
-        gst_caps_features_remove(feat, GST_CAPS_FEATURE_MEMORY_DMABUF);
-      }
+      gst_svp_ext_transform_caps_clear(priv->svpCtx, ret);
     }
 
     if (filter) {
@@ -210,6 +260,19 @@ static GstCaps* svpPayloadTransformCaps(GstBaseTransform* base, GstPadDirection 
     GST_DEBUG_OBJECT(self, "return caps %" GST_PTR_FORMAT, ret);
 
     return ret;
+}
+
+static gboolean has_decrypt_to_host(GstCaps *caps) {
+    if (!caps) return FALSE;
+    guint n = gst_caps_get_size(caps);
+    for (guint i = 0; i < n; ++i) {
+        const GstStructure *s = gst_caps_get_structure(caps, i);
+        gboolean decrypt_to_host = FALSE;
+        if (gst_structure_get_boolean(s, "decrypt-to-host", &decrypt_to_host) && decrypt_to_host) {
+            return TRUE;
+        }
+    }
+    return FALSE;
 }
 
 static GstStateChangeReturn svpPayloadChangeState(GstElement* element, GstStateChange transition)
