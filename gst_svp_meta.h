@@ -140,21 +140,7 @@ gboolean gst_svp_is_multiple_decrypt_supported(void);
 */
 gboolean gst_svp_ext_context_process_store_get_value(void * pContext, const char * name, void * value, const size_t size);
 gboolean gst_svp_ext_context_process_store_set_value(void * pContext, const char * name, void * value, const size_t size);
-/*
- * gst-svp-ext SoC specific Implementation should be provide for below APIs
- */
-void svpGetDrmOEMContext(void ** ppdrmOemContext);
-void svpGetDrmPlatformInitData( void ** ppPlatformInitData);
-bool svpIsAudioNeedNonSVPContext(void);
-bool svpIsVideoResCheckNeed(void);
-bool svpIsDynamicSVPEncEnabled( void );
-bool svpLoadRevocationList(void);
-void svpGetDrmStoragePath(std::string& readDir, std::string& storagePath, std::string& storeLocation);
-void svpPlatformInitializePlayready(void);
-void svpPlatformInitializeWidevine(void);
-void svpPlatformUninitializePlayready(void);
-void svpPlatformUninitializeWidevine(void);
-bool svpIsSecureClockInitNeed(void);
+
 
 uint32_t svp_allocate_secure_buffers(void* pContext, void** ppInBuf, void** ppOutBuf, const uint8_t* pInData, const size_t nDataLen);
 uint32_t svp_release_secure_buffers(void* pContext,  void* pInBuf, void* pOutBuf, uint8_t* pDataOut, size_t nDataOutMax);
