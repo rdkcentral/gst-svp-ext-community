@@ -60,6 +60,7 @@ void gst_svp_ext_transform_caps_clear_impl(void * pContext, GstCaps* caps);
 gboolean gst_svp_ext_context_get_value_impl(void * pContext, const char * name, void * value, const size_t size);
 gboolean gst_svp_ext_context_set_value_impl(void * pContext, const char * name, void * value, const size_t size);
 
+#if defined OCDM_DRM_EXT_NOT_ENABLED
 void svpGetDrmOEMContextImpl(void ** ppdrmOemContext);
 void svpGetDrmPlatformInitDataImpl( void ** ppPlatformInitData);
 bool svpIsAudioNeedNonSVPContextImpl(void);
@@ -73,6 +74,7 @@ void svpPlatformInitializeWidevineImpl(void);
 void svpPlatformUninitializePlayreadyImpl(void);
 void svpPlatformUninitializeWidevineImpl(void);
 bool svpIsSecureClockInitNeedImpl(void);
+#endif
 
 typedef uint32_t (*svp_allocate_secure_buffers_t)(void* pContext, void** ppInBuf, void** ppOutBuf, const uint8_t* pInData, const size_t nDataLen);
 typedef uint32_t (*svp_release_secure_buffers_t)(void* pContext, void* pInBuf, void* pOutBuf, uint8_t* pDataOut, size_t nDataOutMax);

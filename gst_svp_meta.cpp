@@ -241,6 +241,8 @@ gboolean svp_buffer_destroy_token(void *token)
     return s_gst_svp_context.svp_buffer_destroy_token(token);
 }
 
+#if defined OCDM_DRM_EXT_NOT_ENABLED
+
 void svpGetDrmOEMContext(void ** ppdrmOemContext)
 {
     RDKPerf perf(__FUNCTION__);
@@ -319,6 +321,7 @@ void svpGetDrmStoragePath(std::string& readDir, std::string& storagePath, std::s
     svpGetDrmStoragePathImpl(readDir, storagePath, storeLocation);
     return;
 }
+#endif
 
 gboolean svp_pipeline_buffers_available(void * pContext, media_type mediaType)
 {
